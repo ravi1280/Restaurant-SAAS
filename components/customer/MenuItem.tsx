@@ -9,7 +9,8 @@ import { generateId } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Sparkles } from 'lucide-react';
+import { ARFoodPreview } from './ARFoodPreview';
 
 const DIETARY_MAP = {
   vegan: { icon: '🌱', label: 'Vegan', variant: 'success' as const },
@@ -30,6 +31,7 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedModifiers, setSelectedModifiers] = useState<Record<string, string>>({});
   const [instructions, setInstructions] = useState('');
+  const [showAR, setShowAR] = useState(false);
 
   const modifierTotal = Object.entries(selectedModifiers).reduce((sum, [groupId, optionId]) => {
     const group = item.modifierGroups.find(g => g.id === groupId);
@@ -89,7 +91,12 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
           </div>
         )}
 
-        <div className="p-3">
+        <div className="p-3 relative">
+          {item.modelUrl && (
+            <span className="absolute top-2 right-2 px-1.5 py-0.5 bg-accent/20 border border-accent/30 text-accent font-bold rounded-lg text-[9px] flex items-center gap-0.5 shadow-sm">
+              <Sparkles size={8} className="animate-pulse" /> 3D
+            </span>
+          )}
           <div className="text-4xl mb-2 text-center">{item.emoji}</div>
           <p className="font-semibold text-sm text-primary leading-tight">{item.name}</p>
           <p className="text-xs text-muted mt-1 line-clamp-2">{item.description}</p>
@@ -135,6 +142,22 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
                   );
                 })}
               </div>
+              {item.modelUrl && (
+                <div className="mt-3.5">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setShowModal(false); // Close details modal first
+                      setShowAR(true);     // Open AR viewer
+                    }}
+                    className="flex items-center gap-1.5 border-accent text-accent hover:bg-accent/10 active:scale-95 transition-all text-xs w-full justify-center"
+                  >
+                    <Sparkles size={14} className="animate-pulse" />
+                    View in 3D / AR
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -201,6 +224,17 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
           </div>
         </div>
       </Modal>
+
+      {item.modelUrl && (
+        <ARFoodPreview
+          isOpen={showAR}
+          onClose={() => setShowAR(false)}
+          itemName={item.name}
+          modelUrl={item.modelUrl}
+          emoji={item.emoji}
+          price={item.price}
+        />
+      )}
     </>
   );
 }

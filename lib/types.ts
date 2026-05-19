@@ -38,6 +38,7 @@ export type MenuItem = {
   linkedInventoryIds: string[]; // inventory items consumed when sold
   upsellItemIds: string[];      // items to suggest when this is added to cart
   createdAt: string;
+  modelUrl?: string;            // 3D model path (e.g. '/models/sammich.glb')
 };
 
 // ─── Cart & Orders ───────────────────────────────────────────────────────────
