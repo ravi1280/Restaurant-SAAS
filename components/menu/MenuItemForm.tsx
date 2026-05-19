@@ -39,6 +39,7 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [modelUrl, setModelUrl] = useState(item?.modelUrl || '');
 
   const toggleDietary = (flag: DietaryFlag) => {
     setDietaryFlags(prev =>
@@ -127,6 +128,7 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
         linkedInventoryIds: item?.linkedInventoryIds || [],
         upsellItemIds: item?.upsellItemIds || [],
         createdAt: item?.createdAt || new Date().toISOString(),
+        modelUrl: modelUrl.trim() || undefined,
       };
       if (item) {
         updateMenuItem(menuItem);
@@ -214,6 +216,17 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
               className="w-full px-3 py-2 bg-elevated border border-border rounded-xl text-primary focus:border-accent focus:outline-none text-sm resize-none"
               placeholder="Brief description of the dish..."
             />
+          </div>
+
+          <div className="col-span-2">
+            <label className="block text-sm text-muted mb-1">3D Model Path (GLB)</label>
+            <input
+              value={modelUrl}
+              onChange={e => setModelUrl(e.target.value)}
+              className="w-full px-3 py-2 bg-elevated border border-border rounded-xl text-primary focus:border-accent focus:outline-none text-sm"
+              placeholder="e.g. /models/burger.glb"
+            />
+            <p className="text-[10px] text-muted mt-1">Leave empty if this dish does not have an AR model. Store GLB files in <code>/public/models/</code>.</p>
           </div>
         </div>
 
