@@ -17,7 +17,11 @@ interface NavItem {
   group: string;
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const { orders, reservations } = useRestaurant();
   const [theme, setTheme] = React.useState<'light' | 'dark'>('dark');
@@ -71,9 +75,9 @@ export function Sidebar() {
   const groups = ['FRONT OF HOUSE', 'BACK OF HOUSE', 'CUSTOMERS'];
 
   return (
-    <div className="w-60 h-full bg-surface border-r border-border flex flex-col">
+    <div className="w-60 h-full bg-surface border-r border-border flex flex-col relative">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-border">
+      <div className="px-5 py-5 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white text-base">
             🍽
@@ -83,6 +87,15 @@ export function Sidebar() {
             <p className="text-xs text-muted mt-0.5">Restaurant OS</p>
           </div>
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 text-muted hover:text-primary hover:bg-elevated rounded-lg transition-colors"
+            title="Close sidebar"
+          >
+            <span className="text-sm font-bold">✕</span>
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -101,6 +114,7 @@ export function Sidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onClose}
                       className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 group relative
                         ${isActive
                           ? 'bg-accent/15 text-accent font-medium'

@@ -54,7 +54,7 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
   };
 
   return (
-    <div className="w-80 h-full bg-surface border-l border-border flex flex-col">
+    <div className="w-full h-full bg-surface flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div>

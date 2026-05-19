@@ -126,10 +126,20 @@ export default function FloorPage() {
 
       {/* Detail panel */}
       {selectedTable && (
-        <TableDetailPanel
-          table={selectedTable}
-          onClose={() => setSelectedTable(null)}
-        />
+        <>
+          {/* Mobile Backdrop */}
+          <div 
+            className="fixed inset-0 bg-background/55 backdrop-blur-sm z-30 md:hidden"
+            onClick={() => setSelectedTable(null)}
+          />
+          {/* Panel Wrapper (Slide-over on mobile, inline sidebar on desktop) */}
+          <div className="fixed md:static inset-y-0 right-0 z-40 w-full sm:w-80 h-full border-l border-border bg-surface shadow-2xl md:shadow-none flex flex-col">
+            <TableDetailPanel
+              table={selectedTable}
+              onClose={() => setSelectedTable(null)}
+            />
+          </div>
+        </>
       )}
     </div>
   );
