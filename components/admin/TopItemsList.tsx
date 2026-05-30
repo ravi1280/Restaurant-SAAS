@@ -1,6 +1,6 @@
 import React from 'react';
 import { MenuItem } from '@/lib/types';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getDirectImageUrl } from '@/lib/utils';
 
 interface TopItemsListProps {
   items: MenuItem[];
@@ -36,7 +36,18 @@ export function TopItemsList({ items, orders }: TopItemsListProps) {
         {ranked.map((entry, idx) => (
           <div key={entry.item.id} className="flex items-center gap-3">
             <span className="text-xs font-bold text-hint w-4 text-center">{idx + 1}</span>
-            <span className="text-xl">{entry.item.emoji}</span>
+            {entry.item.imageUrl ? (
+              <img
+                src={getDirectImageUrl(entry.item.imageUrl)}
+                alt={entry.item.name}
+                className="w-6 h-6 object-cover rounded-md"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-149514740007a-18a1833f4a7c?q=80&w=120&auto=format&fit=crop';
+                }}
+              />
+            ) : (
+              <span className="text-xl">{entry.item.emoji}</span>
+            )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm font-medium text-primary truncate">{entry.item.name}</p>

@@ -6,14 +6,55 @@ import {
   LoyaltyAccount, VenueSettings, WaiterAlert,
   StaffMember, Shift, InventoryItem, StockMovement,
 } from '@/lib/types';
-import { STORAGE_KEYS, DEFAULT_SETTINGS } from '@/lib/constants';
-import { parseLocalStorage, setLocalStorage } from '@/lib/utils';
+import { DEFAULT_SETTINGS } from '@/lib/constants';
 import {
-  seedMenuItems, seedCategories, generateSeedTables,
-  generateSeedOrders, seedLoyaltyAccounts,
-  generateSeedReservations, seedStaff, seedShifts,
-  seedInventory,
-} from '@/lib/seedData';
+  getDbState,
+  addMenuItemAction,
+  updateMenuItemAction,
+  deleteMenuItemAction,
+  updateCategoriesAction,
+  addOrderAction,
+  updateOrderAction,
+  updateTableAction,
+  mergeTablesAction,
+  unmergeTablesAction,
+  addReservationAction,
+  updateReservationAction,
+  deleteReservationAction,
+  updateLoyaltyAccountAction,
+  addWaiterAlertAction,
+  updateWaiterAlertAction,
+  updateSettingsAction,
+  addStaffAction,
+  updateStaffAction,
+  deleteStaffAction,
+  clockInAction,
+  clockOutAction,
+  addInventoryItemAction,
+  updateInventoryItemAction,
+  deleteInventoryItemAction,
+  addStockMovementAction,
+} from '@/lib/actions/dbActions';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Recursively converts database null values to undefined for frontend optional type compatibility
+function cleanDbObject<T>(obj: T): T {
+  if (obj === null || obj === undefined) return undefined as any;
+  if (Array.isArray(obj)) {
+    return obj.map(cleanDbObject) as any;
+  }
+  if (typeof obj === 'object') {
+    const newObj: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const val = obj[key];
+        newObj[key] = val === null ? undefined : cleanDbObject(val);
+      }
+    }
+    return newObj;
+  }
+  return obj;
+}
 
 // ─── State ───────────────────────────────────────────────────────────────────
 interface RestaurantState {
@@ -122,143 +163,130 @@ const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 export function RestaurantProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // Seed + hydrate on mount
+  // Load and hydrate state from Neon DB on mount
   useEffect(() => {
-    const seeded = parseLocalStorage<boolean>(STORAGE_KEYS.SEEDED, false);
+    async function initDbState() {
+      try {
+        const dbState = await getDbState();
+        const cleanedItems = cleanDbObject(dbState.menuItems || []);
+        const cleanedCategories = cleanDbObject(dbState.menuCategories || []);
+        const cleanedOrders = cleanDbObject(dbState.orders || []);
+        const cleanedTables = cleanDbObject(dbState.tables || []);
+        const cleanedReservations = cleanDbObject(dbState.reservations || []);
+        const cleanedLoyalty = cleanDbObject(dbState.loyalty || []);
+        const cleanedSettings = cleanDbObject(dbState.settings || DEFAULT_SETTINGS);
+        const cleanedStaff = cleanDbObject(dbState.staff || []);
+        const cleanedShifts = cleanDbObject(dbState.shifts || []);
+        const cleanedInventory = cleanDbObject(dbState.inventory || []);
+        const cleanedStockMovements = cleanDbObject(dbState.stockMovements || []);
 
-    if (!seeded) {
-      const orders = generateSeedOrders();
-      const tables = generateSeedTables();
-      const reservations = generateSeedReservations();
-
-      setLocalStorage(STORAGE_KEYS.MENU_ITEMS, seedMenuItems);
-      setLocalStorage(STORAGE_KEYS.MENU_CATEGORIES, seedCategories);
-      setLocalStorage(STORAGE_KEYS.ORDERS, orders);
-      setLocalStorage(STORAGE_KEYS.TABLES, tables);
-      setLocalStorage(STORAGE_KEYS.RESERVATIONS, reservations);
-      setLocalStorage(STORAGE_KEYS.LOYALTY, seedLoyaltyAccounts);
-      setLocalStorage(STORAGE_KEYS.WAITER_ALERTS, []);
-      setLocalStorage(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
-      setLocalStorage(STORAGE_KEYS.STAFF, seedStaff);
-      setLocalStorage(STORAGE_KEYS.SHIFTS, seedShifts);
-      setLocalStorage(STORAGE_KEYS.INVENTORY, seedInventory);
-      setLocalStorage(STORAGE_KEYS.STOCK_MOVEMENTS, []);
-      setLocalStorage(STORAGE_KEYS.SEEDED, true);
+        dispatch({
+          type: 'HYDRATE',
+          payload: {
+            menuItems: cleanedItems as MenuItem[],
+            menuCategories: cleanedCategories as MenuCategory[],
+            orders: cleanedOrders as Order[],
+            tables: cleanedTables as Table[],
+            reservations: cleanedReservations as Reservation[],
+            loyalty: cleanedLoyalty as LoyaltyAccount[],
+            waiterAlerts: cleanedTables ? (cleanedTables.flatMap(t => t.waiterAlerts || []) as WaiterAlert[]) : [],
+            settings: cleanedSettings as VenueSettings,
+            staff: cleanedStaff as StaffMember[],
+            shifts: cleanedShifts as Shift[],
+            inventory: cleanedInventory as InventoryItem[],
+            stockMovements: cleanedStockMovements as StockMovement[],
+            isSeeded: true,
+          },
+        });
+      } catch (error) {
+        console.error('Error hydrating restaurant state from database:', error);
+      }
     }
-
-    dispatch({
-      type: 'HYDRATE',
-      payload: {
-        menuItems: parseLocalStorage(STORAGE_KEYS.MENU_ITEMS, seedMenuItems),
-        menuCategories: parseLocalStorage(STORAGE_KEYS.MENU_CATEGORIES, seedCategories),
-        orders: parseLocalStorage(STORAGE_KEYS.ORDERS, []),
-        tables: parseLocalStorage(STORAGE_KEYS.TABLES, []),
-        reservations: parseLocalStorage(STORAGE_KEYS.RESERVATIONS, []),
-        loyalty: parseLocalStorage(STORAGE_KEYS.LOYALTY, []),
-        waiterAlerts: parseLocalStorage(STORAGE_KEYS.WAITER_ALERTS, []),
-        settings: { ...DEFAULT_SETTINGS, ...parseLocalStorage(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS) },
-        staff: parseLocalStorage(STORAGE_KEYS.STAFF, seedStaff),
-        shifts: parseLocalStorage(STORAGE_KEYS.SHIFTS, seedShifts),
-        inventory: parseLocalStorage(STORAGE_KEYS.INVENTORY, seedInventory),
-        stockMovements: parseLocalStorage(STORAGE_KEYS.STOCK_MOVEMENTS, []),
-        isSeeded: true,
-      },
-    });
-
-    const handleStorage = (e: StorageEvent | Event) => {
-      // Just re-hydrate entirely on storage event (for same-tab polling or cross-tab sync)
-      dispatch({
-        type: 'HYDRATE',
-        payload: {
-          menuItems: parseLocalStorage(STORAGE_KEYS.MENU_ITEMS, seedMenuItems),
-          menuCategories: parseLocalStorage(STORAGE_KEYS.MENU_CATEGORIES, seedCategories),
-          orders: parseLocalStorage(STORAGE_KEYS.ORDERS, []),
-          tables: parseLocalStorage(STORAGE_KEYS.TABLES, []),
-          reservations: parseLocalStorage(STORAGE_KEYS.RESERVATIONS, []),
-          loyalty: parseLocalStorage(STORAGE_KEYS.LOYALTY, []),
-          waiterAlerts: parseLocalStorage(STORAGE_KEYS.WAITER_ALERTS, []),
-          settings: { ...DEFAULT_SETTINGS, ...parseLocalStorage(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS) },
-          staff: parseLocalStorage(STORAGE_KEYS.STAFF, seedStaff),
-          shifts: parseLocalStorage(STORAGE_KEYS.SHIFTS, seedShifts),
-          inventory: parseLocalStorage(STORAGE_KEYS.INVENTORY, seedInventory),
-          stockMovements: parseLocalStorage(STORAGE_KEYS.STOCK_MOVEMENTS, []),
-          isSeeded: true,
-        },
-      });
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    initDbState();
   }, []);
 
   // ─── Menu ─────────────────────────────────────────────────────────────────
   const addMenuItem = useCallback((item: MenuItem) => {
     const updated = [...state.menuItems, item];
-    setLocalStorage(STORAGE_KEYS.MENU_ITEMS, updated);
-    dispatch({ type: 'SET_MENU_ITEMS', payload: updated });
+    dispatch({ type: 'SET_MENU_ITEMS', payload: updated as MenuItem[] });
+    addMenuItemAction(item).catch(err => console.error('DB Error:', err));
   }, [state.menuItems]);
 
   const updateMenuItem = useCallback((item: MenuItem) => {
     const updated = state.menuItems.map(i => i.id === item.id ? item : i);
-    setLocalStorage(STORAGE_KEYS.MENU_ITEMS, updated);
-    dispatch({ type: 'SET_MENU_ITEMS', payload: updated });
+    dispatch({ type: 'SET_MENU_ITEMS', payload: updated as MenuItem[] });
+    updateMenuItemAction(item).catch(err => console.error('DB Error:', err));
   }, [state.menuItems]);
 
   const deleteMenuItem = useCallback((id: string) => {
     const updated = state.menuItems.filter(i => i.id !== id);
-    setLocalStorage(STORAGE_KEYS.MENU_ITEMS, updated);
-    dispatch({ type: 'SET_MENU_ITEMS', payload: updated });
+    dispatch({ type: 'SET_MENU_ITEMS', payload: updated as MenuItem[] });
+    deleteMenuItemAction(id).catch(err => console.error('DB Error:', err));
   }, [state.menuItems]);
 
   const updateCategories = useCallback((categories: MenuCategory[]) => {
-    setLocalStorage(STORAGE_KEYS.MENU_CATEGORIES, categories);
-    dispatch({ type: 'SET_MENU_CATEGORIES', payload: categories });
+    dispatch({ type: 'SET_MENU_CATEGORIES', payload: categories as MenuCategory[] });
+    updateCategoriesAction(categories).catch(err => console.error('DB Error:', err));
   }, []);
 
   // ─── Orders ───────────────────────────────────────────────────────────────
   const addOrder = useCallback((order: Order) => {
     const updated = [...state.orders, order];
-    setLocalStorage(STORAGE_KEYS.ORDERS, updated);
-    dispatch({ type: 'SET_ORDERS', payload: updated });
+    dispatch({ type: 'SET_ORDERS', payload: updated as Order[] });
+    addOrderAction(order).catch(err => console.error('DB Error:', err));
   }, [state.orders]);
 
   const updateOrder = useCallback((order: Order) => {
     const updated = state.orders.map(o => o.id === order.id ? order : o);
-    setLocalStorage(STORAGE_KEYS.ORDERS, updated);
-    dispatch({ type: 'SET_ORDERS', payload: updated });
+    dispatch({ type: 'SET_ORDERS', payload: updated as Order[] });
+    updateOrderAction(order).catch(err => console.error('DB Error:', err));
   }, [state.orders]);
 
-  const refreshOrders = useCallback(() => {
-    const orders = parseLocalStorage<Order[]>(STORAGE_KEYS.ORDERS, []);
-    dispatch({ type: 'SET_ORDERS', payload: orders });
+  const refreshOrders = useCallback(async () => {
+    try {
+      const dbState = await getDbState();
+      const cleanedOrders = cleanDbObject(dbState.orders || []);
+      dispatch({ type: 'SET_ORDERS', payload: cleanedOrders as Order[] });
+    } catch (err) {
+      console.error('DB Error:', err);
+    }
   }, []);
 
   // ─── Tables ───────────────────────────────────────────────────────────────
   const updateTable = useCallback((table: Table) => {
     const updated = state.tables.map(t => t.id === table.id ? table : t);
-    setLocalStorage(STORAGE_KEYS.TABLES, updated);
-    dispatch({ type: 'SET_TABLES', payload: updated });
+    dispatch({ type: 'SET_TABLES', payload: updated as Table[] });
+    updateTableAction(table).catch(err => console.error('DB Error:', err));
   }, [state.tables]);
 
-  const refreshTables = useCallback(() => {
-    const tables = parseLocalStorage<Table[]>(STORAGE_KEYS.TABLES, []);
-    dispatch({ type: 'SET_TABLES', payload: tables });
+  const refreshTables = useCallback(async () => {
+    try {
+      const dbState = await getDbState();
+      const cleanedTables = cleanDbObject(dbState.tables || []);
+      dispatch({ type: 'SET_TABLES', payload: cleanedTables as Table[] });
+    } catch (err) {
+      console.error('DB Error:', err);
+    }
   }, []);
 
   const mergeTables = useCallback((primaryId: number, secondaryIds: number[]) => {
+    let newSeats = 0;
     const updated = state.tables.map(t => {
       if (t.id === primaryId) {
-        return { ...t, mergedWith: secondaryIds, seats: t.seats + secondaryIds.reduce((s, id) => {
+        const addedSeats = secondaryIds.reduce((s, id) => {
           const found = state.tables.find(x => x.id === id);
           return s + (found?.seats || 0);
-        }, 0) };
+        }, 0);
+        newSeats = t.seats + addedSeats;
+        return { ...t, mergedWith: secondaryIds, seats: newSeats };
       }
       if (secondaryIds.includes(t.id)) {
         return { ...t, status: 'occupied' as const, mergedWith: [primaryId] };
       }
       return t;
     });
-    setLocalStorage(STORAGE_KEYS.TABLES, updated);
-    dispatch({ type: 'SET_TABLES', payload: updated });
+    dispatch({ type: 'SET_TABLES', payload: updated as Table[] });
+    mergeTablesAction(primaryId, secondaryIds, newSeats).catch(err => console.error('DB Error:', err));
   }, [state.tables]);
 
   const unmergeTables = useCallback((primaryId: number) => {
@@ -274,27 +302,27 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
       }
       return t;
     });
-    setLocalStorage(STORAGE_KEYS.TABLES, updated);
-    dispatch({ type: 'SET_TABLES', payload: updated });
+    dispatch({ type: 'SET_TABLES', payload: updated as Table[] });
+    unmergeTablesAction(primaryId, mergedIds).catch(err => console.error('DB Error:', err));
   }, [state.tables]);
 
   // ─── Reservations ─────────────────────────────────────────────────────────
   const addReservation = useCallback((res: Reservation) => {
     const updated = [...state.reservations, res];
-    setLocalStorage(STORAGE_KEYS.RESERVATIONS, updated);
-    dispatch({ type: 'SET_RESERVATIONS', payload: updated });
+    dispatch({ type: 'SET_RESERVATIONS', payload: updated as Reservation[] });
+    addReservationAction(res).catch(err => console.error('DB Error:', err));
   }, [state.reservations]);
 
   const updateReservation = useCallback((res: Reservation) => {
     const updated = state.reservations.map(r => r.id === res.id ? res : r);
-    setLocalStorage(STORAGE_KEYS.RESERVATIONS, updated);
-    dispatch({ type: 'SET_RESERVATIONS', payload: updated });
+    dispatch({ type: 'SET_RESERVATIONS', payload: updated as Reservation[] });
+    updateReservationAction(res).catch(err => console.error('DB Error:', err));
   }, [state.reservations]);
 
   const deleteReservation = useCallback((id: string) => {
     const updated = state.reservations.filter(r => r.id !== id);
-    setLocalStorage(STORAGE_KEYS.RESERVATIONS, updated);
-    dispatch({ type: 'SET_RESERVATIONS', payload: updated });
+    dispatch({ type: 'SET_RESERVATIONS', payload: updated as Reservation[] });
+    deleteReservationAction(id).catch(err => console.error('DB Error:', err));
   }, [state.reservations]);
 
   // ─── Loyalty ──────────────────────────────────────────────────────────────
@@ -303,8 +331,8 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
     const updated = existing
       ? state.loyalty.map(l => l.phone === acc.phone ? acc : l)
       : [...state.loyalty, acc];
-    setLocalStorage(STORAGE_KEYS.LOYALTY, updated);
-    dispatch({ type: 'SET_LOYALTY', payload: updated });
+    dispatch({ type: 'SET_LOYALTY', payload: updated as LoyaltyAccount[] });
+    updateLoyaltyAccountAction(acc).catch(err => console.error('DB Error:', err));
   }, [state.loyalty]);
 
   const getLoyaltyAccount = useCallback((phone: string) => {
@@ -313,53 +341,56 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
 
   // ─── Waiter Alerts ────────────────────────────────────────────────────────
   const addWaiterAlert = useCallback((alert: WaiterAlert) => {
-    const existing = parseLocalStorage<WaiterAlert[]>(STORAGE_KEYS.WAITER_ALERTS, []);
-    const updated = [...existing, alert];
-    setLocalStorage(STORAGE_KEYS.WAITER_ALERTS, updated);
-    dispatch({ type: 'SET_WAITER_ALERTS', payload: updated });
-    const tables = parseLocalStorage<Table[]>(STORAGE_KEYS.TABLES, []);
-    const updatedTables = tables.map(t =>
+    const updatedAlerts = [...state.waiterAlerts, alert];
+    dispatch({ type: 'SET_WAITER_ALERTS', payload: updatedAlerts as WaiterAlert[] });
+
+    const updatedTables = state.tables.map(t =>
       t.id === alert.tableId ? { ...t, waiterAlerts: [...(t.waiterAlerts || []), alert] } : t
     );
-    setLocalStorage(STORAGE_KEYS.TABLES, updatedTables);
-    dispatch({ type: 'SET_TABLES', payload: updatedTables });
-  }, []);
+    dispatch({ type: 'SET_TABLES', payload: updatedTables as Table[] });
+
+    addWaiterAlertAction(alert).catch(err => console.error('DB Error:', err));
+  }, [state.waiterAlerts, state.tables]);
 
   const updateWaiterAlert = useCallback((alert: WaiterAlert) => {
-    const existing = parseLocalStorage<WaiterAlert[]>(STORAGE_KEYS.WAITER_ALERTS, []);
-    const updated = existing.map(a => a.id === alert.id ? alert : a);
-    setLocalStorage(STORAGE_KEYS.WAITER_ALERTS, updated);
-    dispatch({ type: 'SET_WAITER_ALERTS', payload: updated });
-  }, []);
+    const updatedAlerts = state.waiterAlerts.map(a => a.id === alert.id ? alert : a);
+    dispatch({ type: 'SET_WAITER_ALERTS', payload: updatedAlerts as WaiterAlert[] });
+    updateWaiterAlertAction(alert).catch(err => console.error('DB Error:', err));
+  }, [state.waiterAlerts]);
 
-  const refreshWaiterAlerts = useCallback(() => {
-    const alerts = parseLocalStorage<WaiterAlert[]>(STORAGE_KEYS.WAITER_ALERTS, []);
-    dispatch({ type: 'SET_WAITER_ALERTS', payload: alerts });
+  const refreshWaiterAlerts = useCallback(async () => {
+    try {
+      const dbState = await getDbState();
+      const cleanedTables = cleanDbObject(dbState.tables || []);
+      dispatch({ type: 'SET_WAITER_ALERTS', payload: cleanedTables ? (cleanedTables.flatMap(t => t.waiterAlerts || []) as WaiterAlert[]) : [] });
+    } catch (err) {
+      console.error('DB Error:', err);
+    }
   }, []);
 
   // ─── Settings ─────────────────────────────────────────────────────────────
   const updateSettings = useCallback((settings: VenueSettings) => {
-    setLocalStorage(STORAGE_KEYS.SETTINGS, settings);
-    dispatch({ type: 'SET_SETTINGS', payload: settings });
+    dispatch({ type: 'SET_SETTINGS', payload: settings as VenueSettings });
+    updateSettingsAction(settings).catch(err => console.error('DB Error:', err));
   }, []);
 
   // ─── Staff ────────────────────────────────────────────────────────────────
   const addStaff = useCallback((member: StaffMember) => {
     const updated = [...state.staff, member];
-    setLocalStorage(STORAGE_KEYS.STAFF, updated);
-    dispatch({ type: 'SET_STAFF', payload: updated });
+    dispatch({ type: 'SET_STAFF', payload: updated as StaffMember[] });
+    addStaffAction(member).catch(err => console.error('DB Error:', err));
   }, [state.staff]);
 
   const updateStaff = useCallback((member: StaffMember) => {
     const updated = state.staff.map(s => s.id === member.id ? member : s);
-    setLocalStorage(STORAGE_KEYS.STAFF, updated);
-    dispatch({ type: 'SET_STAFF', payload: updated });
+    dispatch({ type: 'SET_STAFF', payload: updated as StaffMember[] });
+    updateStaffAction(member).catch(err => console.error('DB Error:', err));
   }, [state.staff]);
 
   const deleteStaff = useCallback((id: string) => {
     const updated = state.staff.filter(s => s.id !== id);
-    setLocalStorage(STORAGE_KEYS.STAFF, updated);
-    dispatch({ type: 'SET_STAFF', payload: updated });
+    dispatch({ type: 'SET_STAFF', payload: updated as StaffMember[] });
+    deleteStaffAction(id).catch(err => console.error('DB Error:', err));
   }, [state.staff]);
 
   // ─── Shifts ───────────────────────────────────────────────────────────────
@@ -374,8 +405,8 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
       ordersHandled: [],
     };
     const updated = [...state.shifts, shift];
-    setLocalStorage(STORAGE_KEYS.SHIFTS, updated);
-    dispatch({ type: 'SET_SHIFTS', payload: updated });
+    dispatch({ type: 'SET_SHIFTS', payload: updated as Shift[] });
+    clockInAction(staffId).catch(err => console.error('DB Error:', err));
     return shift;
   }, [state.shifts]);
 
@@ -383,8 +414,8 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
     const updated = state.shifts.map(s =>
       s.id === shiftId ? { ...s, clockOut: new Date().toISOString() } : s
     );
-    setLocalStorage(STORAGE_KEYS.SHIFTS, updated);
-    dispatch({ type: 'SET_SHIFTS', payload: updated });
+    dispatch({ type: 'SET_SHIFTS', payload: updated as Shift[] });
+    clockOutAction(shiftId).catch(err => console.error('DB Error:', err));
   }, [state.shifts]);
 
   const getActiveShift = useCallback((staffId: string): Shift | undefined => {
@@ -394,35 +425,33 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
   // ─── Inventory ────────────────────────────────────────────────────────────
   const addInventoryItem = useCallback((item: InventoryItem) => {
     const updated = [...state.inventory, item];
-    setLocalStorage(STORAGE_KEYS.INVENTORY, updated);
-    dispatch({ type: 'SET_INVENTORY', payload: updated });
+    dispatch({ type: 'SET_INVENTORY', payload: updated as InventoryItem[] });
+    addInventoryItemAction(item).catch(err => console.error('DB Error:', err));
   }, [state.inventory]);
 
   const updateInventoryItem = useCallback((item: InventoryItem) => {
     const updated = state.inventory.map(i => i.id === item.id ? item : i);
-    setLocalStorage(STORAGE_KEYS.INVENTORY, updated);
-    dispatch({ type: 'SET_INVENTORY', payload: updated });
+    dispatch({ type: 'SET_INVENTORY', payload: updated as InventoryItem[] });
+    updateInventoryItemAction(item).catch(err => console.error('DB Error:', err));
   }, [state.inventory]);
 
   const deleteInventoryItem = useCallback((id: string) => {
     const updated = state.inventory.filter(i => i.id !== id);
-    setLocalStorage(STORAGE_KEYS.INVENTORY, updated);
-    dispatch({ type: 'SET_INVENTORY', payload: updated });
+    dispatch({ type: 'SET_INVENTORY', payload: updated as InventoryItem[] });
+    deleteInventoryItemAction(id).catch(err => console.error('DB Error:', err));
   }, [state.inventory]);
 
   const addStockMovement = useCallback((movement: StockMovement) => {
-    // Update inventory level
     const updatedInventory = state.inventory.map(item =>
       item.id === movement.inventoryItemId
         ? { ...item, currentStock: Math.max(0, item.currentStock + movement.quantity) }
         : item
     );
-    setLocalStorage(STORAGE_KEYS.INVENTORY, updatedInventory);
-    dispatch({ type: 'SET_INVENTORY', payload: updatedInventory });
+    dispatch({ type: 'SET_INVENTORY', payload: updatedInventory as InventoryItem[] });
 
     const updatedMovements = [...state.stockMovements, movement];
-    setLocalStorage(STORAGE_KEYS.STOCK_MOVEMENTS, updatedMovements);
-    dispatch({ type: 'SET_STOCK_MOVEMENTS', payload: updatedMovements });
+    dispatch({ type: 'SET_STOCK_MOVEMENTS', payload: updatedMovements as StockMovement[] });
+    addStockMovementAction(movement).catch(err => console.error('DB Error:', err));
   }, [state.inventory, state.stockMovements]);
 
   const value: RestaurantContextValue = {

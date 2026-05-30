@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/admin/Sidebar';
-import { Menu } from 'lucide-react';
+import { Menu, Utensils } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,7 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-1.5">
-            <span className="text-lg">🍽</span>
+            <Utensils size={18} className="text-accent" />
             <span className="font-heading font-bold text-sm text-primary">TableFlow OS</span>
           </div>
           <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">

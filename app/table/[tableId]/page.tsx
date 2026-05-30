@@ -9,7 +9,7 @@ import { MenuBrowser } from '@/components/customer/MenuBrowser';
 import { CartDrawer } from '@/components/customer/CartDrawer';
 import { CallWaiterButton } from '@/components/customer/CallWaiterButton';
 import { LoyaltyBadge } from '@/components/customer/LoyaltyBadge';
-import { ShoppingBag, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Ban, Utensils } from 'lucide-react';
 
 function TableOrderingInner({ tableId }: { tableId: number }) {
   const { menuItems, menuCategories, settings, getLoyaltyAccount, refreshOrders } = useRestaurant();
@@ -34,7 +34,7 @@ function TableOrderingInner({ tableId }: { tableId: number }) {
   if (isNaN(tableId) || tableId < 1 || tableId > 20) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <p className="text-5xl mb-4">🚫</p>
+        <Ban className="w-12 h-12 text-danger mx-auto mb-4" />
         <h1 className="text-xl font-bold text-primary mb-2">Table Not Found</h1>
         <p className="text-muted text-sm">Please ask your waiter for assistance.</p>
         <p className="text-muted text-sm mt-2">Call: {settings.phone}</p>
@@ -55,7 +55,7 @@ function TableOrderingInner({ tableId }: { tableId: number }) {
                     <ArrowLeft size={16} />
                   </Link>
                 )}
-                <span className="text-xl">🍽</span>
+                <Utensils size={18} className="text-accent" />
                 <h1 className="font-heading text-lg font-bold text-primary">{settings.restaurantName}</h1>
               </div>
               <p className="text-xs text-muted">Table {tableId} · {settings.tagline}</p>

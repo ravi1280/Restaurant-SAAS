@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Grid3X3, UtensilsCrossed, ChefHat,
-  BookOpen, Calendar, Star, Settings, Bell, Users, Package, Sun, Moon
+  BookOpen, Calendar, Star, Settings, Bell, Users, Package, Sun, Moon, X
 } from 'lucide-react';
 import { useRestaurant } from '@/context/RestaurantContext';
 
@@ -79,8 +79,8 @@ export function Sidebar({ onClose }: SidebarProps) {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white text-base">
-            🍽
+          <div className="w-8 h-8 bg-accent/10 text-accent rounded-lg flex items-center justify-center">
+            <UtensilsCrossed size={16} />
           </div>
           <div>
             <p className="text-sm font-semibold text-primary leading-none">TableFlow</p>
@@ -93,7 +93,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             className="md:hidden p-1.5 text-muted hover:text-primary hover:bg-elevated rounded-lg transition-colors"
             title="Close sidebar"
           >
-            <span className="text-sm font-bold">✕</span>
+            <X size={16} />
           </button>
         )}
       </div>

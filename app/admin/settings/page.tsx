@@ -22,6 +22,12 @@ export default function SettingsPage() {
     }
   }, []);
 
+  React.useEffect(() => {
+    if (settings) {
+      setForm(settings);
+    }
+  }, [settings]);
+
   const handleSave = () => {
     setSaving(true);
     setTimeout(() => {

@@ -5,7 +5,7 @@ import { useRestaurant } from '@/context/RestaurantContext';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
 import { MenuItemForm } from '@/components/menu/MenuItemForm';
 import { MenuItem } from '@/lib/types';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, UtensilsCrossed } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/context/ToastContext';
 
@@ -99,7 +99,7 @@ export default function MenuPage() {
       {/* Item grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-4xl mb-3">🍽</p>
+          <UtensilsCrossed className="w-12 h-12 text-muted/40 mx-auto mb-3" />
           <p className="text-muted">No items in this category</p>
           <Button variant="accent" className="mt-4" onClick={() => setEditingItem(null)}>
             <Plus size={16} />

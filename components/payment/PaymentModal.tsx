@@ -4,8 +4,6 @@ import React, { useState } from 'react';
 import { Order } from '@/lib/types';
 import { useRestaurant } from '@/context/RestaurantContext';
 import { formatPrice } from '@/lib/utils';
-import { parseLocalStorage, setLocalStorage } from '@/lib/utils';
-import { STORAGE_KEYS } from '@/lib/constants';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle, CreditCard, Banknote, QrCode } from 'lucide-react';

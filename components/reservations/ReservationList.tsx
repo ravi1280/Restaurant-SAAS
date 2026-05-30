@@ -6,7 +6,7 @@ import { useRestaurant } from '@/context/RestaurantContext';
 import { useToast } from '@/context/ToastContext';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Phone, Users, Calendar, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, Users, Calendar, Clock, ChevronDown, ChevronUp, CreditCard } from 'lucide-react';
 
 interface ReservationListProps {
   reservations: Reservation[];
@@ -103,9 +103,9 @@ export function ReservationList({ reservations }: ReservationListProps) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-4xl mb-3">📅</p>
-          <p className="text-muted">No reservations for this period</p>
+        <div className="text-center py-12 flex flex-col items-center justify-center">
+          <Calendar className="w-12 h-12 text-muted/40 mb-3" />
+          <p className="text-muted text-sm">No reservations for this period</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -117,8 +117,8 @@ export function ReservationList({ reservations }: ReservationListProps) {
                     <p className="font-semibold text-primary">{res.guestName}</p>
                     <StatusBadge status={res.status} />
                     {res.depositTaken && (
-                      <span className="text-xs text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/20">
-                        💳 Deposit
+                      <span className="text-[10px] text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/20 flex items-center gap-1 font-semibold uppercase tracking-wider">
+                        <CreditCard size={10} /> Deposit
                       </span>
                     )}
                   </div>

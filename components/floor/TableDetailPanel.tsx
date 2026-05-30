@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { X, Bell, CheckCircle, Clock, DollarSign, UserX, Link2, Unlink } from 'lucide-react';
 import { BillView } from '@/components/payment/BillView';
 import { PaymentModal } from '@/components/payment/PaymentModal';
+import { SplitBillModal } from '@/components/payment/SplitBillModal';
 
 interface TableDetailPanelProps {
   table: Table;
@@ -17,16 +18,21 @@ interface TableDetailPanelProps {
 }
 
 export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
-  const { orders, updateTable, updateOrder, waiterAlerts, updateWaiterAlert } = useRestaurant();
+  const { orders, updateTable, mergeTables, unmergeTables, waiterAlerts, updateWaiterAlert } = useRestaurant();
   const { showToast } = useToast();
   const [showBill, setShowBill] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
   const [showMerge, setShowMerge] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<number | ''>('');
+  const [selectedOrderIndex, setSelectedOrderIndex] = useState(0);
 
-  const currentOrder = table.currentOrderId
-    ? orders.find(o => o.id === table.currentOrderId)
-    : undefined;
+  // Find all active orders for this table
+  const activeOrders = orders.filter(
+    o => o.tableId === table.id && o.status !== 'paid' && o.status !== 'cancelled'
+  );
+
+  const currentOrder = activeOrders[selectedOrderIndex] || activeOrders[0];
 
   const tableAlerts = (waiterAlerts || []).filter(
     a => a.tableId === table.id && a.status === 'pending'
@@ -48,11 +54,6 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
     showToast(`Table ${table.id} cleared`, 'success');
   };
 
-  const handleMarkBillPending = () => {
-    updateTable({ ...table, status: 'bill-pending' });
-    showToast(`Table ${table.id} marked as bill pending`, 'info');
-  };
-
   return (
     <div className="w-full h-full bg-surface flex flex-col">
       {/* Header */}
@@ -71,6 +72,24 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
           <X size={18} />
         </button>
       </div>
+
+      {/* Select active order if multiple bills exist */}
+      {activeOrders.length > 1 && (
+        <div className="px-5 py-2.5 bg-elevated border-b border-border flex items-center justify-between shrink-0">
+          <span className="text-xs font-semibold text-muted">Select Bill:</span>
+          <select
+            value={selectedOrderIndex}
+            onChange={e => setSelectedOrderIndex(parseInt(e.target.value))}
+            className="bg-surface border border-border px-2 py-1 rounded-lg text-xs font-bold text-accent focus:outline-none"
+          >
+            {activeOrders.map((o, idx) => (
+              <option key={o.id} value={idx}>
+                {o.orderNumber} ({formatPrice(o.total)})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         {/* Occupied since */}
@@ -107,25 +126,25 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
           </div>
         )}
 
-        {/* Current order */}
+        {/* Current order details */}
         {currentOrder ? (
           <div className="px-5 py-4 border-b border-border">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-muted uppercase tracking-wider">Current Order</p>
-              <span className="font-mono text-xs text-primary">{currentOrder.orderNumber}</span>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">Order Items</p>
+              <span className="font-mono text-xs text-primary font-bold">{currentOrder.orderNumber}</span>
             </div>
             <div className="space-y-2 mb-3">
               {currentOrder.items.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between text-sm">
                   <span className="text-muted">
-                    <span className="text-primary font-medium">{item.quantity}×</span> {item.name}
+                    <span className="text-primary font-semibold">{item.quantity}×</span> {item.name}
                   </span>
-                  <span className="text-primary">{formatPrice(item.price * item.quantity)}</span>
+                  <span className="text-primary font-medium">{formatPrice(item.price * item.quantity)}</span>
                 </div>
               ))}
             </div>
             <div className="border-t border-border pt-2 mt-2">
-              <div className="flex justify-between text-sm font-semibold text-primary">
+              <div className="flex justify-between text-sm font-bold text-primary">
                 <span>Total</span>
                 <span>{formatPrice(currentOrder.total)}</span>
               </div>
@@ -142,15 +161,25 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
       <div className="px-5 py-4 border-t border-border space-y-2">
         {currentOrder && (
           <>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="w-full"
-              onClick={() => setShowBill(true)}
-            >
-              <DollarSign size={14} />
-              View Full Bill
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1 text-xs py-2 h-auto"
+                onClick={() => setShowBill(true)}
+              >
+                <DollarSign size={14} />
+                View Bill
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1 text-xs py-2 h-auto"
+                onClick={() => setShowSplit(true)}
+              >
+                Split Bill
+              </Button>
+            </div>
             <Button
               variant="accent"
               size="sm"
@@ -166,8 +195,8 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
             <Button variant="ghost" size="sm" className="w-full text-muted" onClick={handleClearTable}>
               <UserX size={14} /> Clear Table
             </Button>
-            {table.mergedWith ? (
-              <Button variant="ghost" size="sm" className="w-full text-muted" onClick={() => updateTable({ ...table, mergedWith: undefined })}>
+            {table.mergedWith && table.mergedWith.length > 0 ? (
+              <Button variant="ghost" size="sm" className="w-full text-muted" onClick={() => unmergeTables(table.id)}>
                 <Unlink size={14} /> Unmerge
               </Button>
             ) : (
@@ -186,7 +215,7 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
             <select
               value={mergeTarget}
               onChange={e => setMergeTarget(parseInt(e.target.value))}
-              className="flex-1 bg-surface border border-border p-1.5 rounded-lg text-sm"
+              className="flex-1 bg-surface border border-border p-1.5 rounded-lg text-sm focus:outline-none"
             >
               <option value="">Select table...</option>
               {Array.from({ length: 20 }, (_, i) => i + 1)
@@ -195,9 +224,10 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
             </select>
             <Button size="sm" variant="accent" onClick={() => {
               if (mergeTarget) {
-                updateTable({ ...table, mergedWith: [...(table.mergedWith || []), mergeTarget as number] });
+                mergeTables(table.id, [mergeTarget as number]);
                 setShowMerge(false);
                 setMergeTarget('');
+                showToast(`Table ${table.id} merged with Table ${mergeTarget}`, 'success');
               }
             }}>Merge</Button>
           </div>
@@ -218,8 +248,25 @@ export function TableDetailPanel({ table, onClose }: TableDetailPanelProps) {
           onClose={() => setShowPayment(false)}
           onSuccess={() => {
             setShowPayment(false);
-            updateTable({ ...table, status: 'available', currentOrderId: undefined, occupiedSince: undefined });
-            showToast('Payment complete! Table cleared.', 'success');
+            
+            // If this was the last active order, free up the table
+            if (activeOrders.length <= 1) {
+              updateTable({ ...table, status: 'available', currentOrderId: undefined, occupiedSince: undefined });
+            }
+            setSelectedOrderIndex(0);
+            showToast('Payment complete! Order settled.', 'success');
+          }}
+        />
+      )}
+
+      {showSplit && currentOrder && (
+        <SplitBillModal
+          order={currentOrder}
+          isOpen={true}
+          onClose={() => setShowSplit(false)}
+          onSplitComplete={() => {
+            setShowSplit(false);
+            setSelectedOrderIndex(0);
           }}
         />
       )}

@@ -5,7 +5,7 @@ import { Order } from '@/lib/types';
 import { getElapsedMinutes } from '@/lib/utils';
 import { useRestaurant } from '@/context/RestaurantContext';
 import { useToast } from '@/context/ToastContext';
-import { Clock, CheckCircle, Flame, X } from 'lucide-react';
+import { Clock, CheckCircle, Flame, X, AlertTriangle, FileText } from 'lucide-react';
 
 interface KDSTicketProps {
   order: Order;
@@ -119,8 +119,9 @@ export function KDSTicket({ order, onStatusChange }: KDSTicketProps) {
                   </p>
                 )}
                 {item.specialInstructions && (
-                  <div className={`mt-1 text-[11px] font-medium px-1.5 py-0.5 rounded-md text-warning bg-warning/10 border border-warning/20 inline-block`}>
-                    ⚠ {item.specialInstructions}
+                  <div className="mt-1 text-[11px] font-medium px-1.5 py-0.5 rounded-md text-warning bg-warning/10 border border-warning/20 inline-flex items-center gap-1">
+                    <AlertTriangle size={10} className="shrink-0" />
+                    <span>{item.specialInstructions}</span>
                   </div>
                 )}
               </div>
@@ -130,9 +131,10 @@ export function KDSTicket({ order, onStatusChange }: KDSTicketProps) {
 
         {order.orderNote && (
           <div className="mt-3 pt-2 border-t border-border/50">
-            <p className="text-xs font-medium text-warning">
-              📝 {order.orderNote}
-            </p>
+            <div className="flex items-start gap-1 text-xs font-medium text-warning">
+              <FileText size={12} className="mt-0.5 shrink-0" />
+              <span>{order.orderNote}</span>
+            </div>
           </div>
         )}
       </div>

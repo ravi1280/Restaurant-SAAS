@@ -196,3 +196,44 @@ export function stockStatusColor(current: number, min: number): string {
   return 'text-success';
 }
 
+export function getDirectImageUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  
+  // Google Images redirect URL conversion
+  // Format: https://www.google.com/imgres?imgurl=ENCODED_URL&...
+  if (url.includes('google.com/imgres')) {
+    try {
+      const urlObj = new URL(url);
+      const imgurl = urlObj.searchParams.get('imgurl');
+      if (imgurl) return decodeURIComponent(imgurl);
+    } catch (e) {
+      // Ignore parsing error, fallback
+    }
+  }
+
+  // Google Drive sharing link conversion
+  // Format 1: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+  // Format 2: https://docs.google.com/file/d/FILE_ID/edit
+  const gdRegex = /\/file\/d\/([a-zA-Z0-9_-]+)\/(view|edit)/;
+  const match = url.match(gdRegex);
+  if (match && match[1]) {
+    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+  }
+  
+  // Alternate format: https://drive.google.com/open?id=FILE_ID
+  if (url.includes('drive.google.com/open?id=')) {
+    const id = url.split('id=')[1]?.split('&')[0];
+    if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
+  }
+  
+  // Imgur conversion
+  // https://imgur.com/gallery/abcde or https://imgur.com/abcde
+  if (url.includes('imgur.com/') && !url.match(/\.(jpeg|jpg|gif|png|webp)/i)) {
+    const parts = url.split('/');
+    const id = parts[parts.length - 1];
+    if (id) return `https://i.imgur.com/${id}.png`;
+  }
+
+  return url;
+}
+

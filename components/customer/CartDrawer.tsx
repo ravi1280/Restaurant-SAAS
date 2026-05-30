@@ -74,9 +74,9 @@ export function CartDrawer({ isOpen, onClose, tableId }: CartDrawerProps) {
 
         <div className="overflow-y-auto" style={{ maxHeight: 'calc(85vh - 220px)' }}>
           {items.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-4xl mb-3">🛒</p>
-              <p className="text-muted">Your cart is empty</p>
+            <div className="text-center py-10 flex flex-col items-center justify-center">
+              <ShoppingBag className="w-12 h-12 text-muted/40 mb-3" />
+              <p className="text-muted text-sm">Your cart is empty</p>
             </div>
           ) : (
             <div className="px-5 space-y-3 pb-2">
@@ -126,7 +126,7 @@ export function CartDrawer({ isOpen, onClose, tableId }: CartDrawerProps) {
                 <textarea
                   value={orderNote}
                   onChange={e => setOrderNote(e.target.value)}
-                  placeholder="📝 Order note (allergies, special requests...)"
+                  placeholder="Order note (allergies, special requests...)"
                   rows={2}
                   className="w-full px-3 py-2 bg-elevated border border-border rounded-xl text-sm text-primary focus:border-accent focus:outline-none resize-none"
                 />

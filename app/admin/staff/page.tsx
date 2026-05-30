@@ -6,7 +6,7 @@ import { StaffMember, Shift } from '@/lib/types';
 import { calculateShiftDuration, formatShiftDuration } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { Clock, Plus, Trash2, Edit } from 'lucide-react';
+import { Clock, Plus, Trash2, Edit, User } from 'lucide-react';
 
 export default function StaffPage() {
   const { staff, shifts, addStaff, updateStaff, clockIn, clockOut } = useRestaurant();
@@ -41,7 +41,9 @@ export default function StaffPage() {
               return (
                 <div key={member.id} className="flex justify-between items-center p-3 bg-elevated rounded-xl border border-border">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{member.avatar}</span>
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
+                      <User size={18} />
+                    </div>
                     <div>
                       <p className="font-medium text-sm text-primary">{member.name}</p>
                       <p className="text-xs text-muted capitalize">{member.role}</p>

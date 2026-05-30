@@ -4,20 +4,19 @@ import React, { useState } from 'react';
 import { MenuItem, ModifierGroup } from '@/lib/types';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
-import { formatPrice } from '@/lib/utils';
-import { generateId } from '@/lib/utils';
+import { formatPrice, generateId, getDirectImageUrl } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Plus, Minus, Sparkles } from 'lucide-react';
+import { Plus, Minus, Sparkles, Leaf, Flame, AlertTriangle, Wheat, Star } from 'lucide-react';
 import { ARFoodPreview } from './ARFoodPreview';
 
 const DIETARY_MAP = {
-  vegan: { icon: '🌱', label: 'Vegan', variant: 'success' as const },
-  spicy: { icon: '🌶', label: 'Spicy', variant: 'danger' as const },
-  nuts: { icon: '🥜', label: 'Contains Nuts', variant: 'warning' as const },
-  glutenFree: { icon: '🌾', label: 'Gluten Free', variant: 'info' as const },
-  chefSpecial: { icon: '⭐', label: "Chef's Special", variant: 'loyalty' as const },
+  vegan: { icon: Leaf, label: 'Vegan', variant: 'success' as const, color: 'text-success bg-success/10 border-success/20' },
+  spicy: { icon: Flame, label: 'Spicy', variant: 'danger' as const, color: 'text-danger bg-danger/10 border-danger/20' },
+  nuts: { icon: AlertTriangle, label: 'Contains Nuts', variant: 'warning' as const, color: 'text-warning bg-warning/10 border-warning/20' },
+  glutenFree: { icon: Wheat, label: 'Gluten Free', variant: 'info' as const, color: 'text-info bg-info/10 border-info/20' },
+  chefSpecial: { icon: Star, label: "Chef's Special", variant: 'loyalty' as const, color: 'text-loyalty bg-loyalty/10 border-loyalty/20 fill-loyalty' },
 };
 
 interface MenuItemCardProps {
@@ -97,7 +96,22 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
               <Sparkles size={8} className="animate-pulse" /> 3D
             </span>
           )}
-          <div className="text-4xl mb-2 text-center">{item.emoji}</div>
+          {item.imageUrl ? (
+            <div className="w-16 h-16 rounded-xl overflow-hidden bg-elevated border border-border mx-auto mb-2 flex items-center justify-center">
+              <img
+                src={getDirectImageUrl(item.imageUrl)}
+                alt={item.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-149514740007a-18a1833f4a7c?q=80&w=120&auto=format&fit=crop';
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-accent/5 to-accent/15 border border-border/50 mx-auto mb-2 flex items-center justify-center text-3xl select-none">
+              {item.emoji}
+            </div>
+          )}
           <p className="font-semibold text-sm text-primary leading-tight">{item.name}</p>
           <p className="text-xs text-muted mt-1 line-clamp-2">{item.description}</p>
 
@@ -105,10 +119,16 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
           {item.dietaryFlags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {item.dietaryFlags.map(flag => {
-                const d = DIETARY_MAP[flag];
+                const d = DIETARY_MAP[flag as keyof typeof DIETARY_MAP];
+                if (!d) return null;
+                const IconComponent = d.icon;
                 return (
-                  <span key={flag} className="text-[10px]" title={d.label}>
-                    {d.icon}
+                  <span
+                    key={flag}
+                    title={d.label}
+                    className={`inline-flex items-center justify-center p-1 rounded-lg border ${d.color}`}
+                  >
+                    <IconComponent size={10} />
                   </span>
                 );
               })}
@@ -129,15 +149,31 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
         <div className="p-5 space-y-4">
           {/* Emoji + description */}
           <div className="flex gap-4">
-            <div className="text-6xl">{item.emoji}</div>
+            {item.imageUrl ? (
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-elevated border border-border shrink-0 flex items-center justify-center">
+                <img
+                  src={getDirectImageUrl(item.imageUrl)}
+                  alt={item.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-149514740007a-18a1833f4a7c?q=80&w=120&auto=format&fit=crop';
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-xl bg-gradient-to-tr from-accent/5 to-accent/15 border border-border/50 shrink-0 flex items-center justify-center text-4xl select-none">{item.emoji}</div>
+            )}
             <div>
               <p className="text-sm text-muted leading-relaxed">{item.description}</p>
               <div className="flex flex-wrap gap-1 mt-2">
                 {item.dietaryFlags.map(flag => {
-                  const d = DIETARY_MAP[flag];
+                  const d = DIETARY_MAP[flag as keyof typeof DIETARY_MAP];
+                  if (!d) return null;
+                  const IconComponent = d.icon;
                   return (
-                    <Badge key={flag} variant={d.variant}>
-                      {d.icon} {d.label}
+                    <Badge key={flag} variant={d.variant} className="flex items-center gap-1">
+                      <IconComponent size={10} />
+                      {d.label}
                     </Badge>
                   );
                 })}

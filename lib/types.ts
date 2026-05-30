@@ -39,6 +39,7 @@ export type MenuItem = {
   upsellItemIds: string[];      // items to suggest when this is added to cart
   createdAt: string;
   modelUrl?: string;            // 3D model path (e.g. '/models/sammich.glb')
+  imageUrl?: string;            // Item image path or URL
 };
 
 // ─── Cart & Orders ───────────────────────────────────────────────────────────

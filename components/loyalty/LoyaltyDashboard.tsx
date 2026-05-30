@@ -5,7 +5,7 @@ import { LoyaltyAccount } from '@/lib/types';
 import { useRestaurant } from '@/context/RestaurantContext';
 import { useToast } from '@/context/ToastContext';
 import { formatPrice, maskPhone, formatDate } from '@/lib/utils';
-import { Search, Trophy, Star, Plus, Minus } from 'lucide-react';
+import { Search, Trophy, Star, Plus, Minus, Users, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export function LoyaltyDashboard() {
@@ -68,14 +68,16 @@ export function LoyaltyDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Enrolled Customers', value: loyalty.length.toString(), icon: '👥' },
-          { label: 'Points Issued Today', value: totalPointsIssued.toLocaleString(), icon: '⭐' },
-          { label: 'Points Redeemed Today', value: totalPointsRedeemed.toLocaleString(), icon: '🎁' },
+          { label: 'Enrolled Customers', value: loyalty.length.toString(), icon: <Users className="w-4 h-4 text-accent" /> },
+          { label: 'Points Issued Today', value: totalPointsIssued.toLocaleString(), icon: <Star className="w-4 h-4 text-loyalty fill-loyalty" /> },
+          { label: 'Points Redeemed Today', value: totalPointsRedeemed.toLocaleString(), icon: <Gift className="w-4 h-4 text-success" /> },
         ].map(stat => (
-          <div key={stat.label} className="bg-surface border border-border rounded-2xl p-4">
-            <div className="text-2xl mb-2">{stat.icon}</div>
-            <p className="text-xl font-bold text-primary">{stat.value}</p>
-            <p className="text-xs text-muted mt-1">{stat.label}</p>
+          <div key={stat.label} className="bg-surface border border-border rounded-2xl p-4 flex flex-col justify-between">
+            <div className="p-2 bg-elevated border border-border rounded-xl w-fit mb-2 flex items-center justify-center">{stat.icon}</div>
+            <div>
+              <p className="text-xl font-bold text-primary">{stat.value}</p>
+              <p className="text-xs text-muted mt-1">{stat.label}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -112,7 +114,10 @@ export function LoyaltyDashboard() {
                     <p className="text-xs text-muted font-mono">{maskPhone(acc.phone)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-loyalty">⭐ {acc.points.toLocaleString()}</p>
+                    <p className="text-sm font-bold text-loyalty flex items-center justify-end gap-1">
+                      <Star size={12} className="fill-loyalty text-loyalty shrink-0" />
+                      <span>{acc.points.toLocaleString()}</span>
+                    </p>
                     <p className="text-xs text-muted">{formatPrice(acc.totalSpent)} spent</p>
                   </div>
                 </div>
@@ -174,7 +179,10 @@ export function LoyaltyDashboard() {
                   <p className="text-sm font-medium text-primary truncate">{acc.name || maskPhone(acc.phone)}</p>
                   <p className="text-xs text-muted">{acc.totalOrders} orders</p>
                 </div>
-                <span className="text-sm font-bold text-loyalty">⭐ {acc.points.toLocaleString()}</span>
+                <span className="text-sm font-bold text-loyalty flex items-center gap-1">
+                  <Star size={12} className="fill-loyalty text-loyalty shrink-0" />
+                  <span>{acc.points.toLocaleString()}</span>
+                </span>
               </div>
             ))}
           </div>

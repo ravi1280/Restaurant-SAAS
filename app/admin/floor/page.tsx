@@ -5,8 +5,6 @@ import { useRestaurant } from '@/context/RestaurantContext';
 import { TableCell } from '@/components/floor/TableCell';
 import { TableDetailPanel } from '@/components/floor/TableDetailPanel';
 import { Table } from '@/lib/types';
-import { parseLocalStorage, setLocalStorage } from '@/lib/utils';
-import { STORAGE_KEYS } from '@/lib/constants';
 import { RefreshCw, UserPlus } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 

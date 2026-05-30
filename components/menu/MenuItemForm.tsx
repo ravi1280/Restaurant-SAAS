@@ -4,23 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { MenuItem, ModifierGroup, ModifierOption, DietaryFlag, Station } from '@/lib/types';
 import { useRestaurant } from '@/context/RestaurantContext';
 import { useToast } from '@/context/ToastContext';
-import { generateId } from '@/lib/utils';
+import { generateId, getDirectImageUrl } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FOOD_EMOJIS } from '@/lib/constants';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Leaf, Flame, AlertTriangle, Wheat, Star } from 'lucide-react';
 
 interface MenuItemFormProps {
   item?: MenuItem | null;
   onClose: () => void;
 }
 
-const DIETARY_OPTIONS: { key: DietaryFlag; label: string; icon: string }[] = [
-  { key: 'vegan', label: 'Vegan', icon: '🌱' },
-  { key: 'spicy', label: 'Spicy', icon: '🌶' },
-  { key: 'nuts', label: 'Contains Nuts', icon: '🥜' },
-  { key: 'glutenFree', label: 'Gluten Free', icon: '🌾' },
-  { key: 'chefSpecial', label: "Chef's Special", icon: '⭐' },
+const DIETARY_OPTIONS = [
+  { key: 'vegan' as DietaryFlag, label: 'Vegan', icon: Leaf },
+  { key: 'spicy' as DietaryFlag, label: 'Spicy', icon: Flame },
+  { key: 'nuts' as DietaryFlag, label: 'Contains Nuts', icon: AlertTriangle },
+  { key: 'glutenFree' as DietaryFlag, label: 'Gluten Free', icon: Wheat },
+  { key: 'chefSpecial' as DietaryFlag, label: "Chef's Special", icon: Star },
 ];
 
 export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
@@ -40,6 +40,7 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [modelUrl, setModelUrl] = useState(item?.modelUrl || '');
+  const [imageUrl, setImageUrl] = useState(item?.imageUrl || '');
 
   const toggleDietary = (flag: DietaryFlag) => {
     setDietaryFlags(prev =>
@@ -129,6 +130,7 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
         upsellItemIds: item?.upsellItemIds || [],
         createdAt: item?.createdAt || new Date().toISOString(),
         modelUrl: modelUrl.trim() || undefined,
+        imageUrl: imageUrl.trim() || undefined,
       };
       if (item) {
         updateMenuItem(menuItem);
@@ -156,9 +158,9 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
           </button>
           {showEmojiPicker && (
             <div className="mt-2 p-3 bg-elevated rounded-xl border border-border grid grid-cols-10 gap-1">
-              {FOOD_EMOJIS.map(e => (
+              {FOOD_EMOJIS.map((e, idx) => (
                 <button
-                  key={e}
+                  key={`${e}-${idx}`}
                   onClick={() => { setEmoji(e); setShowEmojiPicker(false); }}
                   className={`text-xl p-1 rounded-lg hover:bg-accent/10 transition-all ${emoji === e ? 'bg-accent/20' : ''}`}
                 >
@@ -219,6 +221,31 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
           </div>
 
           <div className="col-span-2">
+            <label className="block text-sm text-muted mb-1">Image URL (Google Drive / Imgur / Web Link)</label>
+            <div className="flex gap-3 items-center">
+              <input
+                value={imageUrl}
+                onChange={e => setImageUrl(e.target.value)}
+                className="flex-1 px-3 py-2 bg-elevated border border-border rounded-xl text-primary focus:border-accent focus:outline-none text-sm"
+                placeholder="e.g. https://drive.google.com/... or https://i.imgur.com/..."
+              />
+              {imageUrl && (
+                <div className="w-10 h-10 border border-border rounded-xl overflow-hidden bg-background shrink-0">
+                  <img
+                    src={getDirectImageUrl(imageUrl)}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-149514740007a-18a1833f4a7c?q=80&w=120&auto=format&fit=crop';
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            <p className="text-[10px] text-muted mt-1">Paste a direct image link or shareable Google Drive / Imgur link. Emojis will be used as a backup.</p>
+          </div>
+
+          <div className="col-span-2">
             <label className="block text-sm text-muted mb-1">3D Model Path (GLB)</label>
             <input
               value={modelUrl}
@@ -241,7 +268,7 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
                 className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all
                   ${station === s ? 'bg-accent/20 border-accent text-accent' : 'bg-elevated border-border text-muted hover:text-primary'}`}
               >
-                {s === 'hot' ? '🔥 Hot Kitchen' : s === 'cold' ? '❄️ Cold' : '🍹 Bar'}
+                {s === 'hot' ? 'Hot Kitchen' : s === 'cold' ? 'Cold Kitchen' : 'Bar Station'}
               </button>
             ))}
           </div>
@@ -251,19 +278,24 @@ export function MenuItemForm({ item, onClose }: MenuItemFormProps) {
         <div>
           <label className="block text-sm text-muted mb-2">Dietary Tags</label>
           <div className="flex flex-wrap gap-2">
-            {DIETARY_OPTIONS.map(opt => (
-              <button
-                key={opt.key}
-                onClick={() => toggleDietary(opt.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all
-                  ${dietaryFlags.includes(opt.key)
-                    ? 'bg-accent/20 border-accent text-accent'
-                    : 'bg-elevated border-border text-muted hover:text-primary'
-                  }`}
-              >
-                {opt.icon} {opt.label}
-              </button>
-            ))}
+            {DIETARY_OPTIONS.map(opt => {
+              const IconComponent = opt.icon;
+              const isSelected = dietaryFlags.includes(opt.key);
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => toggleDietary(opt.key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all
+                    ${isSelected
+                      ? 'bg-accent/20 border-accent text-accent'
+                      : 'bg-elevated border-border text-muted hover:text-primary'
+                    }`}
+                >
+                  <IconComponent size={12} className={isSelected ? 'text-accent' : 'text-hint'} />
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

@@ -5,8 +5,6 @@ import { useCart } from '@/context/CartContext';
 import { useRestaurant } from '@/context/RestaurantContext';
 import { useToast } from '@/context/ToastContext';
 import { formatPrice, generateId, generateOrderNumber, calculateOrderTotals, calculatePointsEarned, calculatePointsDiscount } from '@/lib/utils';
-import { STORAGE_KEYS } from '@/lib/constants';
-import { parseLocalStorage, setLocalStorage } from '@/lib/utils';
 import { Order, Table } from '@/lib/types';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';

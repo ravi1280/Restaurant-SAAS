@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Order } from '@/lib/types';
-import { parseLocalStorage, estimateWaitMinutes, formatWaitTime } from '@/lib/utils';
-import { STORAGE_KEYS } from '@/lib/constants';
+import { estimateWaitMinutes, formatWaitTime } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle, Star } from 'lucide-react';
 import { useRestaurant } from '@/context/RestaurantContext';
@@ -16,33 +15,29 @@ interface OrderStatusProps {
 const STEPS = ['Order Received', 'Preparing', 'Ready to Serve'];
 
 export function OrderStatus({ order, onClose }: OrderStatusProps) {
-  const { updateOrder } = useRestaurant();
+  const { orders, updateOrder } = useRestaurant();
   const [step, setStep] = useState(0);
-  const [liveOrder, setLiveOrder] = useState(order);
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(!!order.feedback);
 
+  const liveOrder = orders.find(o => o.id === order.id) || order;
+
+  // Mock progress timeouts for visual demo
   useEffect(() => {
-    const t1 = setTimeout(() => setStep(1), 3000);
-    const t2 = setTimeout(() => setStep(2), 11000);
+    const t1 = setTimeout(() => setStep(prev => Math.max(prev, 1)), 3000);
+    const t2 = setTimeout(() => setStep(prev => Math.max(prev, 2)), 11000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
-  // Poll for real status updates
+  // Update step based on live order status changes from DB
   useEffect(() => {
-    const interval = setInterval(() => {
-      const orders = parseLocalStorage<Order[]>(STORAGE_KEYS.ORDERS, []);
-      const updated = orders.find(o => o.id === order.id);
-      if (updated) {
-        setLiveOrder(updated);
-        if (updated.status === 'preparing' && step < 1) setStep(1);
-        if (updated.status === 'ready' && step < 2) setStep(2);
-        if (['served', 'paid'].includes(updated.status) && step < 3) setStep(3);
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [order.id, step]);
+    if (liveOrder.status === 'preparing' && step < 1) setStep(1);
+    if (liveOrder.status === 'ready' && step < 2) setStep(2);
+    if (['served', 'paid'].includes(liveOrder.status) && step < 3) setStep(3);
+  }, [liveOrder.status, step]);
+
+  const preparingCount = orders.filter(o => o.status === 'preparing').length;
 
   return (
     <div className="p-6 text-center space-y-6">
@@ -66,10 +61,7 @@ export function OrderStatus({ order, onClose }: OrderStatusProps) {
         </p>
         {step < 2 && (
           <p className="text-xs text-muted mt-1">
-            Estimated wait: {formatWaitTime(estimateWaitMinutes(
-              parseLocalStorage<Order[]>(STORAGE_KEYS.ORDERS, []).filter(o => o.status === 'preparing').length,
-              12
-            ))}
+            Estimated wait: {formatWaitTime(estimateWaitMinutes(preparingCount, 12))}
           </p>
         )}
       </div>

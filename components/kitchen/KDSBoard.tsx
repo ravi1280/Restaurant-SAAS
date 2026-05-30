@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Order } from '@/lib/types';
 import { KDSTicket } from './KDSTicket';
-import { parseLocalStorage, setLocalStorage } from '@/lib/utils';
-import { STORAGE_KEYS } from '@/lib/constants';
+import { useRestaurant } from '@/context/RestaurantContext';
+import { ChefHat } from 'lucide-react';
 
 type KDSTab = 'all' | 'pending' | 'preparing' | 'ready' | 'completed';
 
@@ -17,66 +17,75 @@ const TABS: { id: KDSTab; label: string }[] = [
 ];
 
 export function KDSBoard() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { orders, refreshOrders, updateOrder } = useRestaurant();
   const [tab, setTab] = useState<KDSTab>('all');
   const [sort, setSort] = useState<'oldest' | 'newest'>('oldest');
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
   const [prevIds, setPrevIds] = useState<Set<string>>(new Set());
 
-  const loadOrders = () => {
-    const all = parseLocalStorage<Order[]>(STORAGE_KEYS.ORDERS, []);
-    const today = new Date().toISOString().split('T')[0];
-    const todayOrders = all.filter(o => o.createdAt.startsWith(today));
-    
-    // Detect new orders
-    const newIds = new Set(todayOrders.map(o => o.id));
-    const added = [...newIds].filter(id => !prevIds.has(id) && prevIds.size > 0);
-    if (added.length > 0) {
-      setFlashIds(new Set(added));
-      setTimeout(() => setFlashIds(new Set()), 2000);
-    }
-    setPrevIds(newIds);
-    setOrders(todayOrders);
-  };
-
+  // Poll for updates every 3s
   useEffect(() => {
-    loadOrders();
-    const interval = setInterval(loadOrders, 3000);
+    refreshOrders(); // Initial fetch
+    const interval = setInterval(() => {
+      refreshOrders();
+    }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshOrders]);
+
+  // Filter orders for today
+  const today = new Date().toISOString().split('T')[0];
+  const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
+
+  // Detect and flash new orders
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const activeTodayOrders = orders.filter(o => o.createdAt.startsWith(todayStr));
+    const newIds = new Set(activeTodayOrders.map(o => o.id));
+    
+    // Check if the set of IDs is actually different from prevIds to avoid infinite loop
+    const isDifferent = newIds.size !== prevIds.size || [...newIds].some(id => !prevIds.has(id));
+    
+    if (isDifferent) {
+      const added = [...newIds].filter(id => !prevIds.has(id) && prevIds.size > 0);
+      if (added.length > 0) {
+        setFlashIds(new Set(added));
+        setTimeout(() => setFlashIds(new Set()), 2000);
+      }
+      setPrevIds(newIds);
+    }
+  }, [orders]);
 
   const handleStatusChange = (order: Order, newStatus: Order['status']) => {
-    const all = parseLocalStorage<Order[]>(STORAGE_KEYS.ORDERS, []);
-    const updated = all.map(o =>
-      o.id === order.id ? { ...o, status: newStatus, updatedAt: new Date().toISOString() } : o
-    );
-    setLocalStorage(STORAGE_KEYS.ORDERS, updated);
-    loadOrders();
+    updateOrder({
+      ...order,
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
-  const filterOrders = (orders: Order[]) => {
+  const filterOrders = (ordersList: Order[]) => {
     switch (tab) {
-      case 'all': return orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status));
-      case 'pending': return orders.filter(o => o.status === 'pending');
-      case 'preparing': return orders.filter(o => o.status === 'preparing');
-      case 'ready': return orders.filter(o => o.status === 'ready');
-      case 'completed': return orders.filter(o => ['served', 'paid'].includes(o.status));
-      default: return orders;
+      case 'all': return ordersList.filter(o => ['pending', 'preparing', 'ready'].includes(o.status));
+      case 'pending': return ordersList.filter(o => o.status === 'pending');
+      case 'preparing': return ordersList.filter(o => o.status === 'preparing');
+      case 'ready': return ordersList.filter(o => o.status === 'ready');
+      case 'completed': return ordersList.filter(o => ['served', 'paid'].includes(o.status));
+      default: return ordersList;
     }
   };
 
-  const sortedFiltered = filterOrders(orders).sort((a, b) => {
+  const sortedFiltered = filterOrders(todayOrders).sort((a, b) => {
     const aTime = new Date(a.createdAt).getTime();
     const bTime = new Date(b.createdAt).getTime();
     return sort === 'oldest' ? aTime - bTime : bTime - aTime;
   });
 
   const counts: Record<KDSTab, number> = {
-    all: orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    preparing: orders.filter(o => o.status === 'preparing').length,
-    ready: orders.filter(o => o.status === 'ready').length,
-    completed: orders.filter(o => ['served', 'paid'].includes(o.status)).length,
+    all: todayOrders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length,
+    pending: todayOrders.filter(o => o.status === 'pending').length,
+    preparing: todayOrders.filter(o => o.status === 'preparing').length,
+    ready: todayOrders.filter(o => o.status === 'ready').length,
+    completed: todayOrders.filter(o => ['served', 'paid'].includes(o.status)).length,
   };
 
   return (
@@ -116,7 +125,7 @@ export function KDSBoard() {
       {/* Board */}
       {sortedFiltered.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <span className="text-5xl mb-4">👨‍🍳</span>
+          <ChefHat className="w-16 h-16 text-muted/40 mb-4 mx-auto" />
           <p className="text-lg font-semibold text-primary mb-1">Kitchen is clear!</p>
           <p className="text-muted text-sm">No active orders right now</p>
         </div>

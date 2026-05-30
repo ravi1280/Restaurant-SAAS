@@ -5,7 +5,7 @@ import { useRestaurant } from '@/context/RestaurantContext';
 import { useToast } from '@/context/ToastContext';
 import { generateId } from '@/lib/utils';
 import { WaiterAlert } from '@/lib/types';
-import { Bell } from 'lucide-react';
+import { Bell, HelpCircle, ClipboardList, CreditCard, MessageSquare } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
@@ -15,10 +15,10 @@ interface CallWaiterButtonProps {
 }
 
 const REASONS = [
-  { id: 'assistance', label: 'Need assistance', icon: '🙋' },
-  { id: 'order', label: 'Ready to order', icon: '📝' },
-  { id: 'bill', label: 'Need the bill', icon: '💳' },
-  { id: 'other', label: 'Other', icon: '💭' },
+  { id: 'assistance', label: 'Need assistance', icon: HelpCircle },
+  { id: 'order', label: 'Ready to order', icon: ClipboardList },
+  { id: 'bill', label: 'Need the bill', icon: CreditCard },
+  { id: 'other', label: 'Other', icon: MessageSquare },
 ];
 
 const COOLDOWN_SECS = 60;
@@ -95,19 +95,18 @@ export function CallWaiterButton({ tableId, variant = 'fab' }: CallWaiterButtonP
           <div className="grid grid-cols-2 gap-3">
             {REASONS.map(reason => {
               const isSelected = selectedReason === reason.label;
+              const Icon = reason.icon;
               return (
                 <button
                   key={reason.id}
                   onClick={() => setSelectedReason(reason.label)}
-                  className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all
+                  className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all group
                     ${isSelected
                       ? 'bg-accent/10 border-accent text-accent shadow-sm scale-[1.02]'
                       : 'bg-elevated border-border text-muted hover:text-primary hover:border-accent/40 hover:bg-surface'
                     }`}
                 >
-                  <span className={`text-3xl mb-2 transition-transform ${isSelected ? 'scale-110' : ''}`}>
-                    {reason.icon}
-                  </span>
+                  <Icon className={`w-7 h-7 mb-2 transition-transform ${isSelected ? 'scale-110 text-accent' : 'text-muted group-hover:text-primary'}`} />
                   <span className={`text-xs text-center font-bold tracking-wide ${isSelected ? 'text-accent' : ''}`}>
                     {reason.label}
                   </span>

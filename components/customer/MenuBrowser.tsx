@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { MenuItem, MenuCategory } from '@/lib/types';
 import { MenuItemCard } from './MenuItem';
+import { UtensilsCrossed } from 'lucide-react';
 
 interface MenuBrowserProps {
   items: MenuItem[];
@@ -54,9 +55,9 @@ export function MenuBrowser({ items, categories }: MenuBrowserProps) {
 
       {/* Grid */}
       {allItems.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-4xl mb-3">🍽</p>
-          <p className="text-muted">No items in this category</p>
+        <div className="text-center py-12 flex flex-col items-center justify-center">
+          <UtensilsCrossed className="w-12 h-12 text-muted/40 mb-3" />
+          <p className="text-muted text-sm">No items in this category</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
