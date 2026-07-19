@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Grid3X3, UtensilsCrossed, ChefHat,
-  BookOpen, Calendar, Star, Settings, Bell, Users, Package, Sun, Moon, X
+  BookOpen, Calendar, Star, Settings, Bell, Users, Package, Sun, Moon, X, Mail
 } from 'lucide-react';
 import { useRestaurant } from '@/context/RestaurantContext';
 
@@ -69,6 +69,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     { label: 'Reservations', href: '/admin/reservations', icon: <Calendar size={18} />, badge: todayReservations, group: 'BACK OF HOUSE' },
     { label: 'Staff & Shifts', href: '/admin/staff', icon: <Users size={18} />, group: 'BACK OF HOUSE' },
     { label: 'Loyalty Points', href: '/admin/loyalty', icon: <Star size={18} />, group: 'CUSTOMERS' },
+    { label: 'CRM & Marketing', href: '/admin/crm', icon: <Mail size={18} />, group: 'CUSTOMERS' },
     { label: 'Settings & QR', href: '/admin/settings', icon: <Settings size={18} />, group: 'CUSTOMERS' },
   ];
 

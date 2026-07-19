@@ -145,6 +145,9 @@ export type Reservation = {
 export type LoyaltyAccount = {
   phone: string;
   name: string;
+  email?: string;
+  dob?: string;
+  anniversary?: string;
   points: number;
   totalSpent: number;
   totalOrders: number;

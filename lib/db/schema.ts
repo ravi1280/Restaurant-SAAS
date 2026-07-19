@@ -88,6 +88,9 @@ export const reservations = pgTable('reservations', {
 export const loyaltyAccounts = pgTable('loyalty_accounts', {
   phone: text('phone').primaryKey(),
   name: text('name').notNull(),
+  email: text('email'), // Added for Email Marketing
+  dob: text('dob'), // Date of Birth for birthday offers (YYYY-MM-DD)
+  anniversary: text('anniversary'), // For anniversary offers (YYYY-MM-DD)
   points: integer('points').notNull().default(0),
   totalSpent: doublePrecision('total_spent').notNull().default(0),
   totalOrders: integer('total_orders').notNull().default(0),

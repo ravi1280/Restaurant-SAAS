@@ -23,6 +23,10 @@ export function CheckoutModal({ tableId, onClose, onSuccess }: CheckoutModalProp
   const { showToast } = useToast();
 
   const [phone, setPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerDob, setCustomerDob] = useState('');
+  const [customerAnniversary, setCustomerAnniversary] = useState('');
   const [redeemPoints, setRedeemPoints] = useState(false);
   const [payNow, setPayNow] = useState(false);
   const [placing, setPlacing] = useState(false);
@@ -91,7 +95,10 @@ export function CheckoutModal({ tableId, onClose, onSuccess }: CheckoutModalProp
         } else {
           updateLoyaltyAccount({
             phone,
-            name: '',
+            name: customerName || 'Valued Customer',
+            email: customerEmail || undefined,
+            dob: customerDob || undefined,
+            anniversary: customerAnniversary || undefined,
             points: pointsEarned,
             totalSpent: total,
             totalOrders: 1,
@@ -164,7 +171,44 @@ export function CheckoutModal({ tableId, onClose, onSuccess }: CheckoutModalProp
             </div>
           )}
           {phone.length >= 10 && !loyaltyAcc && (
-            <p className="text-xs text-muted mt-1">New account will be created · You&apos;ll earn {pointsEarned} points</p>
+            <div className="mt-3 space-y-2 p-3 bg-elevated border border-border rounded-xl">
+              <p className="text-xs text-primary font-semibold">New Loyalty Account</p>
+              <input
+                type="text"
+                placeholder="Name"
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+                className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-primary focus:border-loyalty focus:outline-none"
+              />
+              <input
+                type="email"
+                placeholder="Email (Optional)"
+                value={customerEmail}
+                onChange={e => setCustomerEmail(e.target.value)}
+                className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-primary focus:border-loyalty focus:outline-none"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-muted block mb-0.5">Birthday (Opt)</label>
+                  <input
+                    type="date"
+                    value={customerDob}
+                    onChange={e => setCustomerDob(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-background border border-border rounded-lg text-sm text-primary focus:border-loyalty focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted block mb-0.5">Anniversary (Opt)</label>
+                  <input
+                    type="date"
+                    value={customerAnniversary}
+                    onChange={e => setCustomerAnniversary(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-background border border-border rounded-lg text-sm text-primary focus:border-loyalty focus:outline-none"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-loyalty text-right pt-1 font-medium">You&apos;ll earn {pointsEarned} points!</p>
+            </div>
           )}
         </div>
 

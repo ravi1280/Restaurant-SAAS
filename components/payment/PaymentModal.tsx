@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Order } from '@/lib/types';
 import { useRestaurant } from '@/context/RestaurantContext';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, generateId } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle, CreditCard, Banknote, QrCode } from 'lucide-react';
@@ -17,7 +17,7 @@ interface PaymentModalProps {
 type PaymentStep = 'choose' | 'cash' | 'card' | 'qr' | 'success';
 
 export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
-  const { updateOrder, updateLoyaltyAccount, getLoyaltyAccount } = useRestaurant();
+  const { updateOrder, updateLoyaltyAccount, getLoyaltyAccount, updateTable, tables, addStockMovement, menuItems } = useRestaurant();
   const [step, setStep] = useState<PaymentStep>('choose');
   const [tendered, setTendered] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -32,6 +32,35 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
         updatedAt: new Date().toISOString(),
       };
       updateOrder(paidOrder);
+
+      // Free the table
+      const tableObj = tables.find(t => t.id === order.tableId);
+      if (tableObj) {
+        updateTable({
+          ...tableObj,
+          status: 'available',
+          currentOrderId: undefined,
+          occupiedSince: undefined,
+        });
+      }
+
+      // Auto-deduct inventory stock
+      order.items.forEach(cartItem => {
+        const menuItem = menuItems.find(m => m.id === cartItem.menuItemId);
+        if (menuItem && menuItem.linkedInventoryIds) {
+          menuItem.linkedInventoryIds.forEach(invId => {
+            addStockMovement({
+              id: generateId(),
+              inventoryItemId: invId,
+              type: 'consumed',
+              quantity: -cartItem.quantity,
+              reason: `Order #${order.orderNumber}`,
+              orderId: order.id,
+              timestamp: new Date().toISOString()
+            });
+          });
+        }
+      });
 
       // Award loyalty points
       if (order.loyaltyPhone) {
